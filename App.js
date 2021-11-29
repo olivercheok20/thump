@@ -10,8 +10,6 @@ import {
   OrthographicCamera,
   Vector2,
   Raycaster,
-  GridHelper,
-  AxesHelper,
   Plane,
   Vector3
 } from "three";
@@ -23,12 +21,10 @@ export default function App() {
 
   React.useEffect(() => {
     AppState.addEventListener("change", nextAppState => {
-      if (
+      if (!(
         appState.current.match(/inactive|background/) &&
         nextAppState === "active"
-      ) {
-        console.log("App has come to the foreground!");
-      } else {
+      )) {
         setRefresh('');
       }
     });
@@ -39,64 +35,81 @@ export default function App() {
     }
   }, []);
 
-  const objects = []
-  var object;
+  const objects = [];
   var scene;
   var camera;
-  var screen_width;
-  var screen_height;
-  const raycaster = new Raycaster();
-  const touch = new Vector2();
-  var touches = 0;
+  var screenWidth;
+  var screenHeight;
+  var touches = {};
+  var draggedObjects = {};
+  var active = {};
+  var canDrag = true;
+  var maxDrag = 0;
+  var quakes = [];
 
   // User adjustable variables
   var gravity = 5;
   var wavespeed = 20;
-  var max_height = 3;
-  var time_param = 0.3;
+  var maxHeight = 3;
   var background = 0xffd1dc;
-  const block_height = 3;
-
-  const distance = (pointOne, pointTwo) => {
-    const dist = Math.sqrt((pointOne.x - pointTwo.x) ** 2 + (pointOne.z - pointTwo.z) ** 2);
-    return dist;
-  }
+  const blockHeight = 3;
 
   const handleTouchStart = (e) => {
     console.log('Touch start:', e.nativeEvent.identifier);
-    if (touches == 0) {
 
-      touch.x = (e.nativeEvent.locationX / screen_width) * 2 - 1;
-      touch.y = - (e.nativeEvent.locationY / screen_height) * 2 + 1;
+    if (e.nativeEvent.identifier + 1 == maxDrag) {
+      return;
+    }
 
-      raycaster.setFromCamera(touch, camera);
+    if (e.nativeEvent.touches.length == e.nativeEvent.identifier + 1) {
+      maxDrag = Math.max(maxDrag, e.nativeEvent.touches.length);
+      active[e.nativeEvent.identifier] = true;
+    } else {
+      return;
+    }
 
-      var intersects = raycaster.intersectObjects(objects, false)
-      
-      if (intersects.length > 0) {
-        object = intersects[0].object;
-        if (object.falling) {
-          object.timeline.clear();
-        }
-        touches += 1;
-        object.drag = true;
-      }
+    const touch = new Vector2(
+      (e.nativeEvent.locationX / screenWidth) * 2 - 1,
+      - (e.nativeEvent.locationY / screenHeight) * 2 + 1
+    );
+
+    touches[e.nativeEvent.identifier] = touch;
+    const raycaster = new Raycaster();
+    raycaster.setFromCamera(touch, camera);
+
+    var intersects = raycaster.intersectObjects(objects, false)
+    
+    if (intersects.length > 0) {
+      const object = intersects[0].object;
+      object.timeline.clear()
+      draggedObjects[e.nativeEvent.identifier] = object
     }
   }
 
   const handleTouchMove = (e) => {
-    if (object != null && e.nativeEvent.identifier == 0) {
-      // console.log('Dragging...');
-      touch.x = (e.nativeEvent.locationX / screen_width) * 2 - 1;
-      touch.y = - (e.nativeEvent.locationY / screen_height) * 2 + 1;
+    // console.log('Touch move:', e.nativeEvent.identifier);
 
+    if (!active[e.nativeEvent.identifier]) {
+      return;
+    }
+
+    const object = draggedObjects[e.nativeEvent.identifier]
+    
+    if (object != null) {
+      // console.log('Dragging...');
+      const touch = new Vector2(
+        (e.nativeEvent.locationX / screenWidth) * 2 - 1,
+        - (e.nativeEvent.locationY / screenHeight) * 2 + 1
+      );
+
+      const raycaster = new Raycaster();
       raycaster.setFromCamera(touch, camera);
 
       var plane = new Plane(new Vector3(0, 0, 1), - object.original.z);
 
       var intersects = new THREE.Vector3();
       
-      object.position.y = raycaster.ray.intersectPlane(plane, intersects).y;
+      object.position.y = Math.max(blockHeight / -2, raycaster.ray.intersectPlane(plane, intersects).y);
       
     } else {
       // console.log('No intersecting object')
@@ -105,79 +118,44 @@ export default function App() {
 
   const handleTouchEnd = (e) => {
     console.log('Touch end:', e.nativeEvent.identifier);
-    if (object != null && e.nativeEvent.identifier == 0) {
-      var height = object.position.y + block_height / 2;
+    active[e.nativeEvent.identifier] = false;
+    if (e.nativeEvent.touches.length == 0) {
+      maxDrag = 0;
+    }
+    const object = draggedObjects[e.nativeEvent.identifier];
+    if (object != null) {
+      var height = object.position.y + blockHeight / 2;
       var time = Math.sqrt(2 * height / gravity);
       const details = {
         object: object,
         height: height,
-        time: time_param
+        time: time,
+        radius: 0,
       }
       object.timeline.to(
         object.position,
         time,
         {
-          y: block_height / -2,
+          y: blockHeight / -2,
           ease: Quad.easeIn,
-          onComplete: () => quake(details)
+          onComplete: () => {
+            quake(details);
+          }
         }
       )
-
   
-      touches -= 1;
-      object.drag = false;
       object.falling = true;
-      object = null;
+      draggedObjects[e.nativeEvent.identifier] = null;
     }
   }
 
   const quake = (details) => {
-    for (var i = 0; i < objects.length; i++) {
-      if (objects[i] === details.object) {
-        continue;
-      }
-      if (objects[i].drag || objects[i].falling) {
-        continue;
-      }
-      var start_time = distance(
-        details.object.position, 
-        objects[i].position
-        ) / wavespeed;
-      objects[i].timeline.to(
-        objects[i].position,
-        details.time,
-        {
-          y: (max_height >= 0 ? Math.min(max_height, details.height) : details.height) - block_height / 2,
-          ease: Quad.easeOut
-        },
-        start_time
-      );
-      objects[i].timeline.to(
-        objects[i].position,
-        details.time,
-        {
-          y: block_height / -2,
-          ease: Quad.easeIn,
-          onComplete: (i) => {
-            objects[i].timeline = new gsap.timeline();
-          },
-          onCompleteParams: [i]
-        },
-        start_time + details.time
-      );
-    }
-
     details.object.timeline = new gsap.timeline();
     details.object.falling = false;
+    quakes.push(details);
   }
 
   const onContextCreate = async (gl) => {
-    // console.log(gl.drawingBufferWidth, gl.drawingBufferHeight);
-    // console.log(screen_width, screen_height);
-
-    // screen_height = gl.drawingBufferHeight;
-    // screen_width = gl.drawingBufferWidth;
-
     // Dimensions of view
     const viewWidth = 30;
     const viewHeight = viewWidth * (gl.drawingBufferHeight / gl.drawingBufferWidth);
@@ -207,16 +185,17 @@ export default function App() {
     scene.add(ambientLight);
 
     // Create geometry and material for objects
-    var geometry = new THREE.BoxGeometry(3, block_height, 1);
+    var geometry = new THREE.BoxGeometry(3, blockHeight, 1);
     var material = new THREE.MeshLambertMaterial({ color: 0xffffff });
 
+    // Draw meshes
     for (var i = 0; i < cols; i++) {
       for (var j = 0; j < rows; j++) {
         var mesh = new THREE.Mesh(geometry, material);
         if ((i + j) % 2 == 0) {
           mesh.position.set(
             (i - cols / 2 + 0.5) * Math.sqrt(2),
-            block_height / -2,
+            blockHeight / -2,
             (j - rows / 2 + 0.5) * 2 * Math.sqrt(2)
           );
           if (i % 2 == 0) {
@@ -238,16 +217,6 @@ export default function App() {
       }
     }
 
-    // const dragControls = new DragControls(objects, camera, renderer.domElement);
-
-    // dragControls.addEventListener('drag', (event) => {
-    //   console.log("Hi");
-    //   event.object.drag = true;
-    //   event.object.position.x = event.object.original.x;
-    //   event.object.position.y = event.object.position.y;
-    //   event.object.position.z = event.object.original.z;
-    // });
-
     // Setup an animation loop
     const render = () => {
       timeout = requestAnimationFrame(render);
@@ -265,20 +234,9 @@ export default function App() {
       onTouchEnd={handleTouchEnd} 
       onTouchMove={handleTouchMove}
       onLayout={(e) => {
-        screen_width = e.nativeEvent.layout.width;
-        screen_height = e.nativeEvent.layout.height;
+        screenWidth = e.nativeEvent.layout.width;
+        screenHeight = e.nativeEvent.layout.height;
       }}
     />
   );
 }
-
-// class IconMesh extends Mesh {
-//   constructor() {
-//     super(
-//       new BoxBufferGeometry(1.0, 1.0, 1.0),
-//       new MeshStandardMaterial({
-//         map: new TextureLoader().load(require("./icon.jpg")),
-//       })
-//     );
-//   }
-// }
