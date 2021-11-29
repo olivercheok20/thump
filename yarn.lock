@@ -5216,6 +5216,11 @@ thenify-all@^1.0.0:
   dependencies:
     any-promise "^1.0.0"
 
+three-dragcontrols@^0.88.2:
+  version "0.88.2"
+  resolved "https://registry.yarnpkg.com/three-dragcontrols/-/three-dragcontrols-0.88.2.tgz#e4b292657b8afffd00e573401da777dfd5dd5cd5"
+  integrity sha512-Qqhbo7+K5TAeqlYlUiI0EBp14uI9nbgoLANas3p4v4kz3h5HmOlComV9UhLI2x3BtdCdcHSuiyDL7sTrtP772w==
+
 three@^0.122.0:
   version "0.122.0"
   resolved "https://registry.yarnpkg.com/three/-/three-0.122.0.tgz#bd9ed8a8820074856e8ba7b63fe0a65176e01aeb"
