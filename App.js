@@ -4,8 +4,9 @@ import { GLView } from "expo-gl";
 import { Renderer } from "expo-three";
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as React from "react";
-import { AppState, Vibration } from "react-native";
+import { AppState, Vibration, View } from "react-native";
 import { gsap, Quad } from 'gsap';
+import Draggable from 'react-native-draggable';
 import {
   Scene,
   OrthographicCamera,
@@ -25,18 +26,20 @@ import {
 
 ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
 
-
 export default function App() {
   let timeout;
   const appState = React.useRef(AppState.currentState);
+  const [buttonSize, setButtonSize] = React.useState(40);
+  const [screenWidth, setScreenWidth] = React.useState(0);
+  const [screenHeight, setScreenHeight] = React.useState(0);
+  const [draggableX, setDraggableX] = React.useState(100);
+  const [draggableY, setDraggableY] = React.useState(100);
 
   var scene;
   var renderer;
   var camera;
   var viewWidth = 30;
   var viewHeight;
-  var screenWidth;
-  var screenHeight;
   var directionalLight;
   var ambientLight;
   var rectGeometry;
@@ -95,18 +98,17 @@ export default function App() {
   React.useEffect(() => {
     AppState.addEventListener("change", nextAppState => {
       Vibration.cancel();
-      // if (!(
-      //   appState.current.match(/inactive|background/) &&
-      //   nextAppState === "active"
-      // )) {
+      if (!(
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      )) {
         setRefresh('');
-      // }
-      if (gl != null) {
-        (async () => {
-          let response = await onContextCreate(gl);
-        })();
-        
-        console.log('Creating new context...')
+        if (gl != null) {
+          (async () => {
+            console.log('Creating new context...')
+            let response = await onContextCreate(gl);
+          })();
+        }
       }
     });
 
@@ -116,9 +118,8 @@ export default function App() {
     }
   }, []);
 
-  const handleTouchStart = (e) => {
+  const handleBlockTouchStart = (e) => {
     console.log('Touch start:', e.nativeEvent.identifier);
-
     if (e.nativeEvent.identifier + 1 == maxDrag) {
       return;
     }
@@ -152,7 +153,7 @@ export default function App() {
     }
   }
 
-  const handleTouchMove = (e) => {
+  const handleBlockTouchMove = (e) => {
     // console.log('Touch move:', e.nativeEvent.identifier);
 
     if (!active[e.nativeEvent.identifier]) {
@@ -181,7 +182,7 @@ export default function App() {
     }
   }
 
-  const handleTouchEnd = (e) => {
+  const handleBlockTouchEnd = (e) => {
     // console.log('Touch end:', e.nativeEvent.identifier);
     active[e.nativeEvent.identifier] = false;
     if (e.nativeEvent.touches.length == 0) {
@@ -341,7 +342,6 @@ export default function App() {
       if (currentContext != contexts) {
         return;
       }
-      console.log(currentContext);
       timeout = requestAnimationFrame(render);
       renderer.render(scene, camera);
       const quakes_to_delete = [];
@@ -393,16 +393,32 @@ export default function App() {
   };
 
   return (
-    <GLView 
-      style={{ flex: 1 }} 
-      onContextCreate={onContextCreate} 
-      onTouchStart={handleTouchStart} 
-      onTouchEnd={handleTouchEnd} 
-      onTouchMove={handleTouchMove}
-      onLayout={(e) => {
-        screenWidth = e.nativeEvent.layout.width;
-        screenHeight = e.nativeEvent.layout.height;
-      }}
-    />
+    <View 
+      style={{ flex: 1 }}
+      onLayout={(e => {})}
+    >
+      <GLView 
+        style={{ flex: 1 }} 
+        onContextCreate={onContextCreate} 
+        onTouchStart={handleBlockTouchStart} 
+        onTouchEnd={handleBlockTouchEnd} 
+        onTouchMove={handleBlockTouchMove}
+        onLayout={(e) => {
+          setScreenWidth(e.nativeEvent.layout.width);
+          setScreenHeight(e.nativeEvent.layout.height);
+          setDraggableX(e.nativeEvent.layout.width - 50);
+          setDraggableY(e.nativeEvent.layout.height - 50);
+        }}
+      />
+      <Draggable 
+        x={draggableX} 
+        y={draggableY} 
+        renderSize={buttonSize} 
+        isCircle 
+        renderText=''
+        renderColor='black'
+
+      />
+    </View>
   );
 }
