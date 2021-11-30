@@ -6,7 +6,6 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as React from "react";
 import { AppState, Vibration, View } from "react-native";
 import { gsap, Quad } from 'gsap';
-import Draggable from 'react-native-draggable';
 import {
   Scene,
   OrthographicCamera,
@@ -29,11 +28,8 @@ ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
 export default function App() {
   let timeout;
   const appState = React.useRef(AppState.currentState);
-  const [buttonSize, setButtonSize] = React.useState(40);
   const [screenWidth, setScreenWidth] = React.useState(0);
   const [screenHeight, setScreenHeight] = React.useState(0);
-  const [draggableX, setDraggableX] = React.useState(100);
-  const [draggableY, setDraggableY] = React.useState(100);
 
   var scene;
   var renderer;
@@ -52,13 +48,12 @@ export default function App() {
 
   var gl;
 
-
   var objects;
   var cols;
   var rows;
   var touches;
   var draggedObjects;
-  var active;
+  var active = {};
   var maxDrag;
   var quakes;
 
@@ -105,7 +100,6 @@ export default function App() {
         setRefresh('');
         if (gl != null) {
           (async () => {
-            console.log('Creating new context...')
             let response = await onContextCreate(gl);
           })();
         }
@@ -136,6 +130,7 @@ export default function App() {
       - (e.nativeEvent.locationY / screenHeight) * 2 + 1
     );
 
+    console.log(touches);
     touches[e.nativeEvent.identifier] = touch;
     const raycaster = new Raycaster();
     raycaster.setFromCamera(touch, camera);
@@ -154,7 +149,7 @@ export default function App() {
   }
 
   const handleBlockTouchMove = (e) => {
-    // console.log('Touch move:', e.nativeEvent.identifier);
+    console.log('Touch move:', e.nativeEvent.identifier);
 
     if (!active[e.nativeEvent.identifier]) {
       return;
@@ -395,7 +390,6 @@ export default function App() {
   return (
     <View 
       style={{ flex: 1 }}
-      onLayout={(e => {})}
     >
       <GLView 
         style={{ flex: 1 }} 
@@ -406,19 +400,9 @@ export default function App() {
         onLayout={(e) => {
           setScreenWidth(e.nativeEvent.layout.width);
           setScreenHeight(e.nativeEvent.layout.height);
-          setDraggableX(e.nativeEvent.layout.width - 50);
-          setDraggableY(e.nativeEvent.layout.height - 50);
         }}
       />
-      <Draggable 
-        x={draggableX} 
-        y={draggableY} 
-        renderSize={buttonSize} 
-        isCircle 
-        renderText=''
-        renderColor='black'
 
-      />
     </View>
   );
 }
