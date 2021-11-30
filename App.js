@@ -13,6 +13,9 @@ import {
   Raycaster,
   Plane,
   BoxGeometry,
+  CylinderGeometry,
+  SphereGeometry,
+  TorusGeometry,
   MeshLambertMaterial,
   Mesh,
   Vector2,
@@ -22,23 +25,7 @@ import {
 export default function App() {
   let timeout;
   const appState = React.useRef(AppState.currentState);
-  const [refresh, setRefresh] = React.useState('');
 
-  React.useEffect(() => {
-    AppState.addEventListener("change", nextAppState => {
-      if (!(
-        appState.current.match(/inactive|background/) &&
-        nextAppState === "active"
-      )) {
-        setRefresh('');
-      }
-    });
-
-    // Clear the animation loop when the component unmounts
-    return () => {
-      clearTimeout(timeout);
-    }
-  }, []);
 
   const objects = [];
   var scene;
@@ -52,15 +39,54 @@ export default function App() {
   var active = {};
   var maxDrag = 0;
   var quakes = [];
-  var movements = 0;
+
+  const RECTANGLE = 1;
+  const SQUARE = 2;
+  const CIRCLE = 3;
+  const NGON = 4;
+  const SPHERE = 5;
+  const TORUS = 6;
 
   // User adjustable variables
-  var gravity = 60;
-  var wavespeed = 20;
-  var maxVelocity = 10;
-  var background = 0xffd1dc;
-  const blockHeight = 3;
+  const gravity = 60;
+  const wavespeed = 20;
+  const minVelocity = 5;
+  const maxVelocity = 10;
+  const background = 0xffd1dc;
+  const ambientColor = 0xffffff;
+  const ambientIntensity = 0.1;
+  const directionalColor = 0xffffff;
+  const directionalIntensity = 1;
+  const blockColor = 0xffffff;
+  const blockHeight = 2;
   const timeScale = 20;
+  const squareSide = 1;
+  const circleRadius = 1;
+  const sphereRadius = 1;
+  const torusRadius = 1;
+  const torusTube = 0.3;
+  const ngonSides = 5;
+  const shape = RECTANGLE;
+  const vibration = true;
+
+  const [refresh, setRefresh] = React.useState('');
+
+  React.useEffect(() => {
+    AppState.addEventListener("change", nextAppState => {
+      Vibration.cancel();
+      if (!(
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      )) {
+        setRefresh('');
+      }
+    });
+
+    // Clear the animation loop when the component unmounts
+    return () => {
+      clearTimeout(timeout);
+    }
+  }, []);
 
   const handleTouchStart = (e) => {
     // console.log('Touch start:', e.nativeEvent.identifier);
@@ -88,7 +114,9 @@ export default function App() {
     var intersects = raycaster.intersectObjects(objects, false)
     
     if (intersects.length > 0) {
-      Vibration.vibrate(15);
+      if (vibration) {
+        Vibration.vibrate(15);
+      }
       const object = intersects[0].object;
       object.timeline.clear()
       object.dragged = true;
@@ -120,11 +148,6 @@ export default function App() {
       var intersects = new Vector3();
       
       object.position.y = Math.max(blockHeight / -2, raycaster.ray.intersectPlane(plane, intersects).y);
-      
-      movements += 1;
-      // if (movements % 3 == 0) {
-      //   Vibration.vibrate(10);
-      // }
     } else {
       // console.log('No intersecting object')
     }
@@ -169,7 +192,6 @@ export default function App() {
     details.object.timeline = new gsap.timeline();
     details.object.falling = false;
     quakes.push(details);
-    Vibration.vibrate(3000);
   }
 
   const distance = (pointOne, pointTwo) => {
@@ -199,31 +221,63 @@ export default function App() {
     scene = new Scene();
 
     // Create lights
-    var directionalLight = new DirectionalLight(0xffffff, 1);
+    var directionalLight = new DirectionalLight(directionalColor, directionalIntensity);
     directionalLight.position.set(10, 20, 0);
     scene.add(directionalLight);
 
-    var ambientLight = new AmbientLight(0xffffff, 0.1);
+    var ambientLight = new AmbientLight(ambientColor, ambientIntensity);
     scene.add(ambientLight);
 
     // Create geometry and material for objects
-    var geometry = new BoxGeometry(3, blockHeight, 1);
-    var material = new MeshLambertMaterial({ color: 0xffffff });
+    var rectGeometry = new BoxGeometry(3, blockHeight, 1);
+    var squareGeometry = new BoxGeometry(squareSide, blockHeight, squareSide);
+    var cylinderGeometry = new CylinderGeometry(circleRadius, circleRadius, blockHeight, 32);
+    var sphereGeometry = new SphereGeometry(sphereRadius, 32, 32);
+    var ngonGeometry = new CylinderGeometry(circleRadius, circleRadius, blockHeight, ngonSides);
+    var torusGeometry = new TorusGeometry(torusRadius, torusTube, 32, 32);
+    var material = new MeshLambertMaterial({ color: blockColor });
 
     // Draw meshes
     for (var i = 0; i < cols; i++) {
       for (var j = 0; j < rows; j++) {
-        var mesh = new Mesh(geometry, material);
+
+        switch (shape) {
+          case RECTANGLE:
+            var mesh = new Mesh(rectGeometry, material);
+            break;
+          case SQUARE:
+            var mesh = new Mesh(squareGeometry, material);
+            break;
+          case CIRCLE:
+            var mesh = new Mesh(cylinderGeometry, material);
+            break;
+          case SPHERE:
+            var mesh = new Mesh(sphereGeometry, material);
+            break;
+          case NGON:
+            var mesh = new Mesh(ngonGeometry, material);
+            break;
+          case TORUS:
+            var mesh = new Mesh(torusGeometry, material);
+            break;
+          }
+
         if ((i + j) % 2 == 0) {
           mesh.position.set(
             (i - cols / 2 + 0.5) * Math.sqrt(2),
             blockHeight / -2,
             (j - rows / 2 + 0.5) * 2 * Math.sqrt(2)
           );
-          if (i % 2 == 0) {
-            mesh.rotation.set(0, Math.PI / 4, 0);
-          } else {
-            mesh.rotation.set(0, Math.PI / -4, 0);
+          if (shape == RECTANGLE || shape == SQUARE) {
+            if (i % 2 == 0) {
+              mesh.rotation.set(0, Math.PI / 4, 0);
+            } else {
+              mesh.rotation.set(0, Math.PI / -4, 0);
+            }
+          } else if (shape == TORUS) {
+            mesh.rotation.set(Math.PI / 2, 0, 0);
+          } else if (shape == NGON) {
+            mesh.rotation.set(0, Math.PI, 0);
           }
 
           mesh.original = {
@@ -245,11 +299,14 @@ export default function App() {
       timeout = requestAnimationFrame(render);
       renderer.render(scene, camera);
       const quakes_to_delete = [];
-      if (quakes.length > 0) {
-        Vibration.vibrate([0, 50, 0], true);
-      } else {
-        Vibration.cancel();
+      if (vibration) {
+        if (quakes.length > 0) {
+          Vibration.vibrate([0, 50, 0], true);
+        } else {
+          Vibration.cancel();
+        }
       }
+
       for (var i = 0; i < quakes.length; i++) {
         const quake = quakes[i];
         for (var j = 0; j < objects.length; j++) {
@@ -258,7 +315,7 @@ export default function App() {
           }
           const dist_from_source = distance(quake.object.position, objects[j].position);
           if (dist_from_source >= quake.radius && dist_from_source < quake.radius + wavespeed / timeScale) {
-            objects[j].velocity += Math.sqrt(2 * gravity * quake.height);
+            objects[j].velocity += Math.max(Math.sqrt(2 * gravity * quake.height), minVelocity);
             quake.raised += 1;
             if (quake.raised == rows * cols / 2 - 1) {
               quakes_to_delete.push(i);
