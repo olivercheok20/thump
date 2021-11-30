@@ -27,18 +27,34 @@ export default function App() {
   const appState = React.useRef(AppState.currentState);
 
 
-  const objects = [];
   var scene;
+  var renderer;
   var camera;
+  var viewWidth = 30;
+  var viewHeight;
   var screenWidth;
   var screenHeight;
+  var directionalLight;
+  var ambientLight;
+  var rectGeometry;
+  var squareGeometry;
+  var cylinderGeometry;
+  var sphereGeometry;
+  var ngonGeometry;
+  var torusGeometry;
+  var material;
+
+  var gl;
+
+
+  var objects;
   var cols;
   var rows;
-  var touches = {};
-  var draggedObjects = {};
-  var active = {};
-  var maxDrag = 0;
-  var quakes = [];
+  var touches;
+  var draggedObjects;
+  var active;
+  var maxDrag;
+  var quakes;
 
   const RECTANGLE = 1;
   const SQUARE = 2;
@@ -80,6 +96,7 @@ export default function App() {
       )) {
         setRefresh('');
       }
+      onContextCreate(gl);
     });
 
     // Clear the animation loop when the component unmounts
@@ -199,10 +216,16 @@ export default function App() {
     return dist;
   }
 
-  const onContextCreate = async (gl) => {
+  const onContextCreate = async (glContext) => {
+
+    gl = glContext; 
+    // Extract gl dimensions
+    drawingBufferHeight = gl.drawingBufferHeight;
+    drawingBufferWidth = gl.drawingBufferWidth;
+
     // Dimensions of view
-    const viewWidth = 30;
-    const viewHeight = viewWidth * (gl.drawingBufferHeight / gl.drawingBufferWidth);
+    viewWidth = 30;
+    viewHeight = viewWidth * (gl.drawingBufferHeight / gl.drawingBufferWidth);
 
     cols = Math.ceil(viewWidth * Math.SQRT1_2) - 4;
     rows = Math.ceil(viewHeight * Math.SQRT1_2) - 3;
@@ -213,7 +236,7 @@ export default function App() {
     camera.lookAt(0, 0, 0);
 
     // Create renderer
-    const renderer = new Renderer({ gl });
+    renderer = new Renderer({ gl });
     renderer.setClearColor(background);
     renderer.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
 
@@ -221,22 +244,31 @@ export default function App() {
     scene = new Scene();
 
     // Create lights
-    var directionalLight = new DirectionalLight(directionalColor, directionalIntensity);
+    directionalLight = new DirectionalLight(directionalColor, directionalIntensity);
     directionalLight.position.set(10, 20, 0);
     scene.add(directionalLight);
 
-    var ambientLight = new AmbientLight(ambientColor, ambientIntensity);
+    ambientLight = new AmbientLight(ambientColor, ambientIntensity);
     scene.add(ambientLight);
 
-    // Create geometry and material for objects
-    var rectGeometry = new BoxGeometry(3, blockHeight, 1);
-    var squareGeometry = new BoxGeometry(squareSide, blockHeight, squareSide);
-    var cylinderGeometry = new CylinderGeometry(circleRadius, circleRadius, blockHeight, 32);
-    var sphereGeometry = new SphereGeometry(sphereRadius, 32, 32);
-    var ngonGeometry = new CylinderGeometry(circleRadius, circleRadius, blockHeight, ngonSides);
-    var torusGeometry = new TorusGeometry(torusRadius, torusTube, 32, 32);
-    var material = new MeshLambertMaterial({ color: blockColor });
+    // Initialise data structures for animation
+    touches = {};
+    draggedObjects = {};
+    active = {};
+    maxDrag = 0;
+    quakes = [];
 
+    // Create geometry and material for objects
+    rectGeometry = new BoxGeometry(3, blockHeight, 1);
+    squareGeometry = new BoxGeometry(squareSide, blockHeight, squareSide);
+    cylinderGeometry = new CylinderGeometry(circleRadius, circleRadius, blockHeight, 32);
+    sphereGeometry = new SphereGeometry(sphereRadius, 32, 32);
+    ngonGeometry = new CylinderGeometry(circleRadius, circleRadius, blockHeight, ngonSides);
+    torusGeometry = new TorusGeometry(torusRadius, torusTube, 32, 32);
+    material = new MeshLambertMaterial({ color: blockColor });
+
+    objects = [];
+    
     // Draw meshes
     for (var i = 0; i < cols; i++) {
       for (var j = 0; j < rows; j++) {
