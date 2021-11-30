@@ -2,6 +2,7 @@
 
 import { GLView } from "expo-gl";
 import { Renderer } from "expo-three";
+import * as ScreenOrientation from 'expo-screen-orientation';
 import * as React from "react";
 import { AppState, Vibration } from "react-native";
 import { gsap, Quad } from 'gsap';
@@ -22,10 +23,12 @@ import {
   Vector3
 } from "three";
 
+ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+
+
 export default function App() {
   let timeout;
   const appState = React.useRef(AppState.currentState);
-
 
   var scene;
   var renderer;
@@ -85,18 +88,26 @@ export default function App() {
   const shape = RECTANGLE;
   const vibration = true;
 
+  var contexts = 0;
+
   const [refresh, setRefresh] = React.useState('');
 
   React.useEffect(() => {
     AppState.addEventListener("change", nextAppState => {
       Vibration.cancel();
-      if (!(
-        appState.current.match(/inactive|background/) &&
-        nextAppState === "active"
-      )) {
+      // if (!(
+      //   appState.current.match(/inactive|background/) &&
+      //   nextAppState === "active"
+      // )) {
         setRefresh('');
+      // }
+      if (gl != null) {
+        (async () => {
+          let response = await onContextCreate(gl);
+        })();
+        
+        console.log('Creating new context...')
       }
-      onContextCreate(gl);
     });
 
     // Clear the animation loop when the component unmounts
@@ -106,7 +117,7 @@ export default function App() {
   }, []);
 
   const handleTouchStart = (e) => {
-    // console.log('Touch start:', e.nativeEvent.identifier);
+    console.log('Touch start:', e.nativeEvent.identifier);
 
     if (e.nativeEvent.identifier + 1 == maxDrag) {
       return;
@@ -217,11 +228,10 @@ export default function App() {
   }
 
   const onContextCreate = async (glContext) => {
+    contexts += 1;
+    const currentContext = contexts;
 
     gl = glContext; 
-    // Extract gl dimensions
-    drawingBufferHeight = gl.drawingBufferHeight;
-    drawingBufferWidth = gl.drawingBufferWidth;
 
     // Dimensions of view
     viewWidth = 30;
@@ -328,6 +338,10 @@ export default function App() {
 
     // Setup an animation loop
     const render = () => {
+      if (currentContext != contexts) {
+        return;
+      }
+      console.log(currentContext);
       timeout = requestAnimationFrame(render);
       renderer.render(scene, camera);
       const quakes_to_delete = [];
