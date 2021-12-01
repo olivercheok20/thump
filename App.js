@@ -91,7 +91,7 @@ export default function App() {
   }, []);
 
   const handleBlockTouchStart = (e) => {
-    // console.log('Touch start:', e.nativeEvent.identifier);
+    console.log('Touch start:', e.nativeEvent.identifier);
     if (e.nativeEvent.identifier + 1 == maxDrag) {
       return;
     }
@@ -140,13 +140,6 @@ export default function App() {
         - (e.nativeEvent.locationY / screenHeight) * 2 + 1
       );
 
-      // if (e.nativeEvent.locationY < 100 && e.nativeEvent.locationY > 0) {
-      //   touch.y = - ((e.nativeEvent.locationY + 100) / screenHeight) * 2 + 1
-      // }
-      // else if (e.nativeEvent.locationY < 100) {
-      //   touch.y = - ((e.nativeEvent.locationY - 500) / screenHeight) * 2 + 1
-      // }
-
       const raycaster = new Raycaster();
       raycaster.setFromCamera(touch, camera.current);
 
@@ -161,7 +154,7 @@ export default function App() {
   }
 
   const handleBlockTouchEnd = (e) => {
-    // console.log('Touch end:', e.nativeEvent.identifier);
+    console.log('Touch end:', e.nativeEvent.identifier);
     active[e.nativeEvent.identifier] = false;
     if (e.nativeEvent.touches.length == 0) {
       maxDrag = 0;
@@ -350,7 +343,7 @@ export default function App() {
         objects.current[j].position.y += objects.current[j].velocity / GLOBAL.timeScale; // scale this by time
         objects.current[j].velocity -= GLOBAL.gravity / GLOBAL.timeScale;
         objects.current[j].velocity = Math.min(objects.current[j].velocity, GLOBAL.maxVelocity);
-        if (objects.current[j].position.y < GLOBAL.blockHeight / -2) {
+        if (objects.current[j].position.y <= GLOBAL.blockHeight / -2) {
           objects.current[j].position.y = GLOBAL.blockHeight / -2;
           objects.current[j].velocity = 0;
         }
@@ -453,6 +446,7 @@ export default function App() {
             backgroundColor: 'rgba(0, 0, 0, 0.7)',
           }}
           onTouchStart={() => {
+            console.log('Closing modal...')
             setModalOpen(false);
           }}
         >
