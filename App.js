@@ -38,7 +38,7 @@ export default function App() {
 
   var scene;
   var renderer;
-  var camera;
+  var camera = React.useRef(null);
   var viewWidth = 30;
   var viewHeight;
   var directionalLight;
@@ -56,12 +56,12 @@ export default function App() {
   var rows;
 
   // Initialise data structures for animation
-  var objects = [];
+  var objects = React.useRef([]);
   var touches = {};
   var draggedObjects = {};
   var active = {};
   var maxDrag = 0;
-  var quakes = [];
+  var quakes = React.useRef([]);
 
   var contexts = 0;
 
@@ -110,10 +110,9 @@ export default function App() {
 
     touches[e.nativeEvent.identifier] = touch;
     const raycaster = new Raycaster();
-    raycaster.setFromCamera(touch, camera);
+    raycaster.setFromCamera(touch, camera.current);
 
-    var intersects = raycaster.intersectObjects(objects, false)
-    
+    var intersects = raycaster.intersectObjects(objects.current, false)
     if (intersects.length > 0) {
       if (GLOBAL.vibration) {
         Vibration.vibrate(15);
@@ -149,7 +148,7 @@ export default function App() {
       // }
 
       const raycaster = new Raycaster();
-      raycaster.setFromCamera(touch, camera);
+      raycaster.setFromCamera(touch, camera.current);
 
       var plane = new Plane(new Vector3(0, 0, 1), - object.original.z);
 
@@ -199,7 +198,7 @@ export default function App() {
   const quake = (details) => {
     details.object.timeline = new gsap.timeline();
     details.object.falling = false;
-    quakes.push(details);
+    quakes.current.push(details);
   }
 
   const distance = (pointOne, pointTwo) => {
@@ -221,9 +220,9 @@ export default function App() {
     rows = Math.ceil(3 * (Math.ceil(viewHeight * Math.SQRT1_2) - 3) / 4);
 
     // Create camera
-    camera = new OrthographicCamera(viewWidth / -2, viewWidth / 2, viewHeight / 2, viewHeight / -2, 1, 1000);
-    camera.position.set(0, 50, 100);
-    camera.lookAt(0, 0, 0);
+    camera.current = new OrthographicCamera(viewWidth / -2, viewWidth / 2, viewHeight / 2, viewHeight / -2, 1, 1000);
+    camera.current.position.set(0, 50, 100);
+    camera.current.lookAt(0, 0, 0);
 
     // Create renderer
     renderer = new Renderer({ gl });
@@ -255,8 +254,8 @@ export default function App() {
     draggedObjects = {};
     active = {};
     maxDrag = 0;
-    quakes = [];
-    objects = [];
+    quakes.current = [];
+    objects.current = [];
     
     // Draw meshes
     for (var i = 0; i < cols; i++) {
@@ -305,7 +304,7 @@ export default function App() {
           mesh.velocity = 0;
           
           scene.add(mesh);
-          objects.push(mesh);
+          objects.current.push(mesh);
         }
       }
     }
@@ -316,25 +315,25 @@ export default function App() {
         return;
       }
       timeout = requestAnimationFrame(render);
-      renderer.render(scene, camera);
+      renderer.render(scene, camera.current);
       const quakes_to_delete = [];
       if (GLOBAL.vibration) {
-        if (quakes.length > 0) {
+        if (quakes.current.length > 0) {
           Vibration.vibrate([0, 50, 0], true);
         } else {
           Vibration.cancel();
         }
       }
 
-      for (var i = 0; i < quakes.length; i++) {
-        const quake = quakes[i];
-        for (var j = 0; j < objects.length; j++) {
-          if (objects[j] === quake.object) {
+      for (var i = 0; i < quakes.current.length; i++) {
+        const quake = quakes.current[i];
+        for (var j = 0; j < objects.current.length; j++) {
+          if (objects.current[j] === quake.object) {
             continue;
           }
-          const dist_from_source = distance(quake.object.position, objects[j].position);
+          const dist_from_source = distance(quake.object.position, objects.current[j].position);
           if (dist_from_source >= quake.radius && dist_from_source < quake.radius + GLOBAL.wavespeed / GLOBAL.timeScale) {
-            objects[j].velocity += Math.max(Math.sqrt(2 * GLOBAL.gravity * quake.height), GLOBAL.minVelocity);
+            objects.current[j].velocity += Math.max(Math.sqrt(2 * GLOBAL.gravity * quake.height), GLOBAL.minVelocity);
             quake.raised += 1;
             if (quake.raised == rows * cols / 2 - 1) {
               quakes_to_delete.push(i);
@@ -344,21 +343,21 @@ export default function App() {
         quake.radius += GLOBAL.wavespeed / GLOBAL.timeScale;
       }
 
-      for (var j = 0; j < objects.length; j++) {
-        if (objects[j].falling || objects[j].dragged) {
+      for (var j = 0; j < objects.current.length; j++) {
+        if (objects.current[j].falling || objects.current[j].dragged) {
           continue;
         }
-        objects[j].position.y += objects[j].velocity / GLOBAL.timeScale; // scale this by time
-        objects[j].velocity -= GLOBAL.gravity / GLOBAL.timeScale;
-        objects[j].velocity = Math.min(objects[j].velocity, GLOBAL.maxVelocity);
-        if (objects[j].position.y < GLOBAL.blockHeight / -2) {
-          objects[j].position.y = GLOBAL.blockHeight / -2;
-          objects[j].velocity = 0;
+        objects.current[j].position.y += objects.current[j].velocity / GLOBAL.timeScale; // scale this by time
+        objects.current[j].velocity -= GLOBAL.gravity / GLOBAL.timeScale;
+        objects.current[j].velocity = Math.min(objects.current[j].velocity, GLOBAL.maxVelocity);
+        if (objects.current[j].position.y < GLOBAL.blockHeight / -2) {
+          objects.current[j].position.y = GLOBAL.blockHeight / -2;
+          objects.current[j].velocity = 0;
         }
       }
 
       for (var i = quakes_to_delete.length - 1; i >= 0; i--) {
-        quakes.splice(quakes_to_delete[i], 1);
+        quakes.current.splice(quakes_to_delete[i], 1);
       }
       gl.endFrameEXP();
     };
@@ -431,10 +430,13 @@ export default function App() {
           backgroundColor: 'rgba(0, 0, 0, 0)',
           paddingTop: 50
         }}
-        onTouchStart={() => setModalOpen(true)}
+        onTouchStart={() => {
+          console.log("Opening modal...");
+          setModalOpen(true);
+        }}
       >
       </View>
-      {/* <Modal
+      <Modal
         animationType={'fade'}
         transparent={true}
         visible={modalOpen}
@@ -468,7 +470,7 @@ export default function App() {
           </View>
         </View>
 
-      </Modal> */}
+      </Modal>
 
     </View>
   );
