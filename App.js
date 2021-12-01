@@ -4,7 +4,7 @@ import { GLView } from "expo-gl";
 import { Renderer } from "expo-three";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as React from "react";
-import { AppState, Modal, Text, Vibration, View } from "react-native";
+import { AppState, Modal, ScrollView, Text, Vibration, View } from "react-native";
 import { gsap, Quad } from "gsap";
 import {
   Scene,
@@ -24,6 +24,8 @@ import {
 } from "three";
 import * as GLOBAL from "./global.js";
 import { useFonts, Montserrat_500Medium } from "@expo-google-fonts/montserrat";
+import { Slider } from '@miblanchard/react-native-slider';
+import ColorPicker from 'react-native-wheel-color-picker';
 
 
 ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
@@ -65,7 +67,7 @@ export default function App() {
 
   var contexts = React.useRef(0);
 
-  const [refresh, setRefresh] = React.useState('');
+  const [refresh, setRefresh] = React.useState(Math.random());
 
 
   React.useEffect(() => {
@@ -75,7 +77,7 @@ export default function App() {
         appState.current.match(/inactive|background/) &&
         nextAppState === "active"
       )) {
-        setRefresh('');
+        setRefresh(Math.random());
         if (gl.current != null) {
           (async () => {
             let response = await onContextCreate(gl.current);
@@ -223,7 +225,7 @@ export default function App() {
     // Create renderer
     // console.log(gl.current.drawingBufferHeight);
     renderer = new Renderer({ gl: gl.current });
-    // renderer.setClearColor(background);
+    // renderer.setClearColor(GLOBAL.background);
     renderer.setClearColor(GLOBAL.background, 0);
     renderer.setSize(gl.current.drawingBufferWidth, gl.current.drawingBufferHeight);
 
@@ -330,7 +332,11 @@ export default function App() {
           }
           const dist_from_source = distance(quake.object.position, objects.current[j].position);
           if (dist_from_source >= quake.radius && dist_from_source < quake.radius + GLOBAL.wavespeed / GLOBAL.timeScale) {
-            objects.current[j].velocity += Math.max(Math.sqrt(2 * GLOBAL.gravity * quake.height), GLOBAL.minVelocity);
+            var velocity_add = Math.sqrt(2 * GLOBAL.gravity * quake.height);
+            if (GLOBAL != null && GLOBAL.minVelocity != -1) {
+              velocity_add = Math.max(velocity_add, GLOBAL.minVelocity);
+            }
+            objects.current[j].velocity += velocity_add;
             quake.raised += 1;
             if (quake.raised == rows * cols / 2 - 1) {
               quakes_to_delete.push(i);
@@ -346,7 +352,9 @@ export default function App() {
         }
         objects.current[j].position.y += objects.current[j].velocity / GLOBAL.timeScale; // scale this by time
         objects.current[j].velocity -= GLOBAL.gravity / GLOBAL.timeScale;
+        if (GLOBAL != null && GLOBAL.maxVelocity != -1) {
         objects.current[j].velocity = Math.min(objects.current[j].velocity, GLOBAL.maxVelocity);
+        }
         if (objects.current[j].position.y <= GLOBAL.blockHeight / -2) {
           objects.current[j].position.y = GLOBAL.blockHeight / -2;
           objects.current[j].velocity = 0;
@@ -373,7 +381,7 @@ export default function App() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(255, 209, 220, 1)',
+          backgroundColor: GLOBAL.background,
         }}
       >
       </View>
@@ -451,13 +459,10 @@ export default function App() {
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: 'rgba(40, 44, 53, 0.5)',
+            backgroundColor: GLOBAL.background,
           }}
           onTouchStart={() => {
             console.log('Closing modal...');
-            console.log(GLOBAL.shape);
-            GLOBAL.shape = 3;
-            console.log(GLOBAL.shape);
             onContextCreate(gl.current);
             setModalOpen(false);
           }}
@@ -471,11 +476,224 @@ export default function App() {
             margin: 20,
             borderRadius: 25,
             backgroundColor: 'rgba(40, 44, 53, 1)',
-
+            justifyContent: 'center',
+            alignItems: 'center'
           }}
         >
+          <Text
+            style={{
+              marginTop: 20,
+              color: 'white',
+              fontSize: 40,
+              fontFamily: 'Montserrat_500Medium',
+              alignSelf: 'center'
+            }}
+          >
+            Options
+          </Text>
+          <View
+            style={{
+              borderBottomColor: '#b3b3b3',
+              width: '80%',
+              borderBottomWidth: 1,
+              marginTop: 25
+            }}
+          />
+          <ScrollView
+            style={{
+              // margin: 25,
+              width: '90%',
+              marginTop: 10,
+              marginBottom: 25,
+              paddingHorizontal: '5%'
+            }}
+            contentContainerStyle={{
+              justifyContent: 'center',
+              alignItems: 'stretch'
+            }}
+          >
+            <Text
+              style={{
+                color: 'white',
+                fontFamily: 'Montserrat_500Medium',
+                alignSelf: 'center',
+                marginTop: 10
+              }}
+            >
+              Gravity
+            </Text>
+            <Slider
+              style={{
+                margin: 10,
+                width: '90%'
+              }}
+              value={GLOBAL.gravity}
+              minimumValue={1}
+              maximumValue={200}
+              onValueChange={(value) => {
+                console.log('Changing gravity...')
+                GLOBAL.gravity = value;
+              }}
+            />
+            <Text
+              style={{
+                color: 'white',
+                fontFamily: 'Montserrat_500Medium',
+                alignSelf: 'center',
+                marginTop: 10
+              }}
+            >
+              Wave Speed
+            </Text>
+            <Slider
+              style={{
+                margin: 10,
+                width: '90%'
+              }}
+              value={GLOBAL.wavespeed}
+              minimumValue={5}
+              maximumValue={100}
+              onValueChange={(value) => {
+                console.log('Changing wavespeed...')
+                GLOBAL.wavespeed = value;
+              }}
+            />
+            <Text
+              style={{
+                color: 'white',
+                fontFamily: 'Montserrat_500Medium',
+                alignSelf: 'center',
+                marginTop: 10
+              }}
+            >
+              Block Height
+            </Text>
+            <Slider
+              style={{
+                margin: 10,
+                width: '90%'
+              }}
+              value={GLOBAL.blockHeight}
+              minimumValue={1}
+              maximumValue={100}
+              onValueChange={(value) => {
+                console.log('Changing block height...')
+                GLOBAL.blockHeight = value;
+              }}
+            />
+            <Text
+              style={{
+                color: 'white',
+                fontFamily: 'Montserrat_500Medium',
+                alignSelf: 'center',
+                marginTop: 10
+              }}
+            >
+              Time Scale
+            </Text>
+            <Slider
+              style={{
+                margin: 10,
+                width: '90%'
+              }}
+              value={GLOBAL.timeScale}
+              minimumValue={15}
+              maximumValue={100}
+              onValueChange={(value) => {
+                console.log('Changing timescale...')
+                GLOBAL.timeScale = value;
+              }}
+            />
+            <Text
+              style={{
+                color: 'white',
+                fontFamily: 'Montserrat_500Medium',
+                alignSelf: 'center',
+                marginTop: 10
+              }}
+            >
+              Max Block Speed (set to 0 for no max)
+            </Text>
+            <Slider
+              style={{
+                margin: 10,
+                width: '90%'
+              }}
+              value={GLOBAL.maxVelocity}
+              minimumValue={-1}
+              maximumValue={50}
+              onValueChange={(value) => {
+                console.log('Changing max velocity...')
+                GLOBAL.maxVelocity = value;
+              }}
+            />
+            <Text
+              style={{
+                color: 'white',
+                fontFamily: 'Montserrat_500Medium',
+                alignSelf: 'center',
+                marginTop: 10
+              }}
+            >
+              Light Intensity
+            </Text>
+            <Slider
+              style={{
+                margin: 10,
+                width: '90%'
+              }}
+              value={GLOBAL.ambientIntensity}
+              minimumValue={0}
+              maximumValue={1}
+              onValueChange={(value) => {
+                console.log('Changing ambient intensity...')
+                GLOBAL.ambientIntensity = value;
+              }}
+            />
+            <Text
+              style={{
+                color: 'white',
+                fontFamily: 'Montserrat_500Medium',
+                alignSelf: 'center',
+                marginTop: 10
+              }}
+            >
+              Background Color
+            </Text>
+            <ColorPicker
+              style={{
+                marginVertical: 20,
+              }}
+              swatchesOnly={true}
+              onColorChange={(value) => {
+                console.log('Changing background...');
+                GLOBAL.background = value;
+                setRefresh(Math.random());
+              }}
+            />
+            <Text
+              style={{
+                color: 'white',
+                fontFamily: 'Montserrat_500Medium',
+                alignSelf: 'center',
+                marginTop: 10
+              }}
+            >
+              Block Color
+            </Text>
+            <ColorPicker
+              style={{
+                marginVertical: 20,
+              }}
+              swatchesOnly={true}
+              onColorChange={(value) => {
+                console.log('Changing block color...');
+                GLOBAL.blockColor = value;
+                setRefresh(Math.random());
+              }}
+            />
+          </ScrollView>
         </View>
-
       </Modal>
 
     </View>

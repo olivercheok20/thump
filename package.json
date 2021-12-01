@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "@expo-google-fonts/montserrat": "^0.2.0",
+    "@miblanchard/react-native-slider": "^2.0.2",
     "expo": "^43.0.0",
     "expo-gl": "~11.0.3",
     "expo-screen-orientation": "^4.0.3",
@@ -10,6 +12,7 @@
     "react-native": "0.64.3",
     "react-native-draggable": "^3.3.0",
     "react-native-web": "0.17.1",
+    "react-native-wheel-color-picker": "^1.1.0",
     "three": "^0.122.0",
     "three-dragcontrols": "^0.88.2"
   },
