@@ -50,7 +50,7 @@ export default function App() {
   var torusGeometry;
   var material;
 
-  var gl;
+  var gl = React.useRef(null);
 
   var cols;
   var rows;
@@ -63,7 +63,7 @@ export default function App() {
   var maxDrag = 0;
   var quakes = React.useRef([]);
 
-  var contexts = 0;
+  var contexts = React.useRef(0);
 
   const [refresh, setRefresh] = React.useState('');
 
@@ -76,9 +76,9 @@ export default function App() {
         nextAppState === "active"
       )) {
         setRefresh('');
-        if (gl != null) {
+        if (gl.current != null) {
           (async () => {
-            let response = await onContextCreate(gl);
+            let response = await onContextCreate(gl.current);
           })();
         }
       }
@@ -200,14 +200,17 @@ export default function App() {
   }
 
   const onContextCreate = async (glContext) => {
-    contexts += 1;
-    const currentContext = contexts;
+    if (glContext.drawingBufferHeight == null) {
+      return;
+    }
+    contexts.current += 1;
+    const currentContext = contexts.current;
 
-    gl = glContext; 
+    gl.current = glContext; 
 
     // Dimensions of view
     viewWidth = 30;
-    viewHeight = viewWidth * (gl.drawingBufferHeight / gl.drawingBufferWidth);
+    viewHeight = viewWidth * (gl.current.drawingBufferHeight / gl.current.drawingBufferWidth);
 
     cols = Math.ceil(viewWidth * Math.SQRT1_2) - 4;
     rows = Math.ceil(3 * (Math.ceil(viewHeight * Math.SQRT1_2) - 3) / 4);
@@ -218,10 +221,11 @@ export default function App() {
     camera.current.lookAt(0, 0, 0);
 
     // Create renderer
-    renderer = new Renderer({ gl });
+    // console.log(gl.current.drawingBufferHeight);
+    renderer = new Renderer({ gl: gl.current });
     // renderer.setClearColor(background);
     renderer.setClearColor(GLOBAL.background, 0);
-    renderer.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
+    renderer.setSize(gl.current.drawingBufferWidth, gl.current.drawingBufferHeight);
 
     // Create scene
     scene = new Scene();
@@ -304,7 +308,7 @@ export default function App() {
 
     // Setup an animation loop
     const render = () => {
-      if (currentContext != contexts) {
+      if (currentContext != contexts.current) {
         return;
       }
       timeout = requestAnimationFrame(render);
@@ -352,7 +356,7 @@ export default function App() {
       for (var i = quakes_to_delete.length - 1; i >= 0; i--) {
         quakes.current.splice(quakes_to_delete[i], 1);
       }
-      gl.endFrameEXP();
+      gl.current.endFrameEXP();
     };
     render();
   };
@@ -434,6 +438,10 @@ export default function App() {
         transparent={true}
         visible={modalOpen}
         statusBarTranslucent={true}
+        onRequestClose={() => {
+          console.log('Closing modal...');
+          setModalOpen(false);
+        }}
       >
         <View
           style={{
@@ -443,25 +451,29 @@ export default function App() {
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backgroundColor: 'rgba(40, 44, 53, 0.5)',
           }}
           onTouchStart={() => {
-            console.log('Closing modal...')
+            console.log('Closing modal...');
+            console.log(GLOBAL.shape);
+            GLOBAL.shape = 3;
+            console.log(GLOBAL.shape);
+            onContextCreate(gl.current);
             setModalOpen(false);
           }}
         >
-          <View
-            style={{
-              flex: 1,
-              position: 'absolute',
-              top: 100,
-              bottom: 100,
-              left: 100,
-              right: 100,
-              backgroundColor: 'rgb('
-            }}
-          >
-          </View>
+        </View>
+
+        <View
+          style={{
+            flex: 1,
+            marginTop: 100,
+            margin: 20,
+            borderRadius: 25,
+            backgroundColor: 'rgba(40, 44, 53, 1)',
+
+          }}
+        >
         </View>
 
       </Modal>
