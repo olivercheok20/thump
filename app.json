@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Thump",
+    "android": {
+      "package": "com.olivercheok.thumpapp"
+    },
+    "ios": {
+      "supportsTablet": false
+    },
+    "icon": "TODO"
+  }
+}

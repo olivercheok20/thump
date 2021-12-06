@@ -26,6 +26,7 @@ import * as GLOBAL from "./global.js";
 import { useFonts, Montserrat_500Medium } from "@expo-google-fonts/montserrat";
 import { Slider } from '@miblanchard/react-native-slider';
 import ColorPicker from 'react-native-wheel-color-picker';
+import RadioButtonRN from 'radio-buttons-react-native';
 
 
 ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
@@ -527,6 +528,7 @@ export default function App() {
                 margin: 10,
                 width: '90%'
               }}
+              thumbTintColor={'white'}
               value={GLOBAL.gravity}
               minimumValue={1}
               maximumValue={200}
@@ -550,6 +552,7 @@ export default function App() {
                 margin: 10,
                 width: '90%'
               }}
+              thumbTintColor={'white'}
               value={GLOBAL.wavespeed}
               minimumValue={5}
               maximumValue={100}
@@ -573,6 +576,7 @@ export default function App() {
                 margin: 10,
                 width: '90%'
               }}
+              thumbTintColor={'white'}
               value={GLOBAL.blockHeight}
               minimumValue={1}
               maximumValue={100}
@@ -596,6 +600,7 @@ export default function App() {
                 margin: 10,
                 width: '90%'
               }}
+              thumbTintColor={'white'}
               value={GLOBAL.timeScale}
               minimumValue={15}
               maximumValue={100}
@@ -619,6 +624,7 @@ export default function App() {
                 margin: 10,
                 width: '90%'
               }}
+              thumbTintColor={'white'}
               value={GLOBAL.maxVelocity}
               minimumValue={-1}
               maximumValue={50}
@@ -642,6 +648,7 @@ export default function App() {
                 margin: 10,
                 width: '90%'
               }}
+              thumbTintColor={'white'}
               value={GLOBAL.ambientIntensity}
               minimumValue={0}
               maximumValue={1}
@@ -662,10 +669,11 @@ export default function App() {
             </Text>
             <ColorPicker
               style={{
-                marginVertical: 20,
+                marginBottom: 20,
               }}
-              swatchesOnly={true}
-              onColorChange={(value) => {
+              swatches={false}
+              color={GLOBAL.background}
+              onColorChangeComplete={(value) => {
                 console.log('Changing background...');
                 GLOBAL.background = value;
                 setRefresh(Math.random());
@@ -683,15 +691,69 @@ export default function App() {
             </Text>
             <ColorPicker
               style={{
-                marginVertical: 20,
+                marginBottom: 20,
               }}
-              swatchesOnly={true}
-              onColorChange={(value) => {
+              swatches={false}
+              color={GLOBAL.blockColor}
+              onColorChangeComplete={(value) => {
                 console.log('Changing block color...');
                 GLOBAL.blockColor = value;
                 setRefresh(Math.random());
               }}
             />
+            <Text
+              style={{
+                color: 'white',
+                fontFamily: 'Montserrat_500Medium',
+                alignSelf: 'center',
+                marginTop: 10
+              }}
+            >
+              Vibration
+            </Text>
+            <RadioButtonRN
+              data={
+                [
+                  {label: 'On', value: true},
+                  {label: 'Off', value: false},
+                ]
+              }
+              initial={GLOBAL.vibration ? 1 : 2}
+              selectedBtn={(e) => {
+                GLOBAL.vibration=e.value;
+              }}
+              box={false}
+              boxActiveBgColor={'#fff'}
+              textColor={'white'}
+            />
+            {/* <Text
+              style={{
+                color: 'white',
+                fontFamily: 'Montserrat_500Medium',
+                alignSelf: 'center',
+                marginTop: 10
+              }}
+            >
+              Shape
+            </Text>
+            <RadioButtonRN
+              data={
+                [
+                  {label: 'Rectangle', value: '1'},
+                  {label: 'Square', value: '2'},
+                  {label: 'Circle', value: '3'},
+                  {label: 'Torus', value: '4'},
+                  {label: 'Sphere', value: '5'},
+                ]
+              }
+              initial={1}
+              selectedBtn={(e) => {
+                GLOBAL.shape=e.value;
+              }}
+              box={false}
+              boxActiveBgColor={'#fff'}
+              textColor={'white'}
+            /> */}
           </ScrollView>
         </View>
       </Modal>

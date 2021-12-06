@@ -14,6 +14,7 @@ module.exports = {
   directionalColor: '#ffffff',
   directionalIntensity: 1,
   blockColor: '#ffffff',
+  // lerpBlockColor: '#000000',
   blockHeight: 2,
   timeScale: 20,
   squareSide: 1,
