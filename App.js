@@ -4,7 +4,7 @@ import { GLView } from "expo-gl";
 import { Renderer } from "expo-three";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as React from "react";
-import { AppState, Modal, ScrollView, Text, Vibration, View } from "react-native";
+import { AppState, Button, Modal, ScrollView, Text, TouchableOpacity, Vibration, View } from "react-native";
 import { gsap, Quad } from "gsap";
 import {
   Scene,
@@ -65,6 +65,7 @@ export default function App() {
   var active = {};
   var maxDrag = 0;
   var quakes = React.useRef([]);
+  var offset = 0;
 
   var contexts = React.useRef(0);
 
@@ -94,7 +95,7 @@ export default function App() {
   }, []);
 
   const handleBlockTouchStart = (e) => {
-    console.log('Touch start:', e.nativeEvent.identifier);
+    // console.log('Touch start:', e.nativeEvent.identifier);
     if (e.nativeEvent.identifier + 1 == maxDrag) {
       return;
     }
@@ -117,10 +118,12 @@ export default function App() {
 
     var intersects = raycaster.intersectObjects(objects.current, false)
     if (intersects.length > 0) {
-      if (GLOBAL.vibration) {
+      if (GLOBAL.vibration == 1) {
         Vibration.vibrate(15);
       }
       const object = intersects[0].object;
+      offset = intersects[0].point.y - GLOBAL.blockHeight / 2 - object.position.y;
+
       object.timeline.clear()
       object.dragged = true;
       draggedObjects[e.nativeEvent.identifier] = object
@@ -150,14 +153,14 @@ export default function App() {
 
       var intersects = new Vector3();
       
-      object.position.y = Math.max(GLOBAL.blockHeight / -2, raycaster.ray.intersectPlane(plane, intersects).y);
+      object.position.y = Math.max(GLOBAL.blockHeight / -2, Math.max(GLOBAL.blockHeight / -2, raycaster.ray.intersectPlane(plane, intersects).y) - GLOBAL.blockHeight / 2 - offset);
     } else {
       // console.log('No intersecting object')
     }
   }
 
   const handleBlockTouchEnd = (e) => {
-    console.log('Touch end:', e.nativeEvent.identifier);
+    // console.log('Touch end:', e.nativeEvent.identifier);
     active[e.nativeEvent.identifier] = false;
     if (e.nativeEvent.touches.length == 0) {
       maxDrag = 0;
@@ -260,7 +263,6 @@ export default function App() {
     // Draw meshes
     for (var i = 0; i < cols; i++) {
       for (var j = 0; j < rows; j++) {
-
         switch (GLOBAL.shape) {
           case GLOBAL.RECTANGLE:
             var mesh = new Mesh(rectGeometry, material);
@@ -277,7 +279,7 @@ export default function App() {
           case GLOBAL.TORUS:
             var mesh = new Mesh(torusGeometry, material);
             break;
-          }
+        }
 
         if ((i + j) % 2 == 0) {
           mesh.position.set(
@@ -317,7 +319,7 @@ export default function App() {
       timeout = requestAnimationFrame(render);
       renderer.render(scene, camera.current);
       const quakes_to_delete = [];
-      if (GLOBAL.vibration) {
+      if (GLOBAL.vibration == 1) {
         if (quakes.current.length > 0) {
           Vibration.vibrate([0, 50, 0], true);
         } else {
@@ -370,6 +372,23 @@ export default function App() {
     render();
   };
 
+  const hexToRgb = (hex) => {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+
+  const getRelativeLuminance = (rgb) => {
+    return 0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b
+  }
+
+  const blackOrWhite = () => {
+    return getRelativeLuminance(hexToRgb(GLOBAL.background)) > 150 ? 'black' : 'white'
+  }
+
   return (
     <View 
       style={{ flex: 1 }}
@@ -406,6 +425,7 @@ export default function App() {
           style={{
             fontSize: 72,
             fontFamily: 'Montserrat_500Medium',
+            color: blackOrWhite()
           }}
         >
           thump
@@ -529,6 +549,7 @@ export default function App() {
                 width: '90%'
               }}
               thumbTintColor={'white'}
+              trackClickable={false}
               value={GLOBAL.gravity}
               minimumValue={1}
               maximumValue={200}
@@ -553,6 +574,7 @@ export default function App() {
                 width: '90%'
               }}
               thumbTintColor={'white'}
+              trackClickable={false}
               value={GLOBAL.wavespeed}
               minimumValue={5}
               maximumValue={100}
@@ -577,6 +599,7 @@ export default function App() {
                 width: '90%'
               }}
               thumbTintColor={'white'}
+              trackClickable={false}
               value={GLOBAL.blockHeight}
               minimumValue={1}
               maximumValue={100}
@@ -601,6 +624,7 @@ export default function App() {
                 width: '90%'
               }}
               thumbTintColor={'white'}
+              trackClickable={false}
               value={GLOBAL.timeScale}
               minimumValue={15}
               maximumValue={100}
@@ -625,6 +649,7 @@ export default function App() {
                 width: '90%'
               }}
               thumbTintColor={'white'}
+              trackClickable={false}
               value={GLOBAL.maxVelocity}
               minimumValue={-1}
               maximumValue={50}
@@ -649,6 +674,7 @@ export default function App() {
                 width: '90%'
               }}
               thumbTintColor={'white'}
+              trackClickable={false}
               value={GLOBAL.ambientIntensity}
               minimumValue={0}
               maximumValue={1}
@@ -714,19 +740,21 @@ export default function App() {
             <RadioButtonRN
               data={
                 [
-                  {label: 'On', value: true},
-                  {label: 'Off', value: false},
+                  {label: 'On', value: 1},
+                  {label: 'Off', value: 2},
                 ]
               }
-              initial={GLOBAL.vibration ? 1 : 2}
+              initial={GLOBAL.vibration}
               selectedBtn={(e) => {
+                console.log("Changing vibration...")
                 GLOBAL.vibration=e.value;
+                setRefresh(Math.random());
               }}
               box={false}
               boxActiveBgColor={'#fff'}
               textColor={'white'}
             />
-            {/* <Text
+            <Text
               style={{
                 color: 'white',
                 fontFamily: 'Montserrat_500Medium',
@@ -737,23 +765,89 @@ export default function App() {
               Shape
             </Text>
             <RadioButtonRN
+              style={{
+                marginBottom: 20
+              }}
               data={
                 [
-                  {label: 'Rectangle', value: '1'},
-                  {label: 'Square', value: '2'},
-                  {label: 'Circle', value: '3'},
-                  {label: 'Torus', value: '4'},
-                  {label: 'Sphere', value: '5'},
+                  {label: 'Rectangle', value: 1},
+                  {label: 'Square', value: 2},
+                  {label: 'Circle', value: 3},
+                  {label: 'Sphere', value: 4},
+                  {label: 'Torus', value: 5},
                 ]
               }
-              initial={1}
+              initial={GLOBAL.shape}
               selectedBtn={(e) => {
+                console.log("Changing shape...")
                 GLOBAL.shape=e.value;
+                setRefresh(Math.random());
               }}
               box={false}
               boxActiveBgColor={'#fff'}
               textColor={'white'}
-            /> */}
+            />
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#03a9f4",
+                justifyContent: "center",
+                alignItems: "center",
+                paddingVertical: 10,
+                borderRadius: 10
+              }}
+              onPress={() => {
+                GLOBAL.gravity = Math.floor(Math.random() * (200 - 1 + 1) + 1);
+                GLOBAL.wavespeed = Math.floor(Math.random() * (100 - 5 + 1) + 5);
+                GLOBAL.blockHeight = Math.floor(Math.random() * (100 - 1 + 1) + 1);
+                GLOBAL.timeScale = Math.floor(Math.random() * (100 - 15 + 1) + 15);
+                GLOBAL.maxVelocity = Math.floor(Math.random() * (50 - (-1) + 1) + (-1));
+                GLOBAL.ambientIntensity = Math.random();
+                GLOBAL.background = "#" + Math.floor(Math.random()*16777215).toString(16);
+                GLOBAL.blockColor = "#" + Math.floor(Math.random()*16777215).toString(16);
+                GLOBAL.vibration = Math.floor(Math.random() * (2 - 1 + 1) + 1);
+                GLOBAL.shape = Math.floor(Math.random() * (5 - 1 + 1) + 1);
+                setRefresh(Math.random());
+              }
+              }
+            >
+              <Text style={{
+                fontFamily: 'Montserrat_500Medium',
+                color: "white"
+              }}>
+                Randomize
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#03a9f4",
+                justifyContent: "center",
+                alignItems: "center",
+                paddingVertical: 10,
+                borderRadius: 10,
+                marginTop: 10
+              }}
+              onPress={() => {
+                GLOBAL.gravity = 60;
+                GLOBAL.wavespeed = 20;
+                GLOBAL.blockHeight = 2;
+                GLOBAL.timeScale = 20;
+                GLOBAL.maxVelocity = -1;
+                GLOBAL.ambientIntensity = 0.1;
+                GLOBAL.background = "#ffd1dc";
+                GLOBAL.blockColor = "#ffffff";
+                GLOBAL.vibration = 1;
+                GLOBAL.shape = 1;
+                setRefresh(Math.random());
+              }
+              }
+            >
+              <Text style={{
+                fontFamily: 'Montserrat_500Medium',
+                color: "white"
+              }}>
+                Restore Defaults
+              </Text>
+            </TouchableOpacity>
           </ScrollView>
         </View>
       </Modal>
