@@ -15,8 +15,8 @@ import {
   Plane,
   BoxGeometry,
   CylinderGeometry,
-  SphereGeometry,
-  TorusGeometry,
+  // SphereGeometry,
+  // TorusGeometry,
   MeshLambertMaterial,
   Mesh,
   Vector2,
@@ -49,8 +49,8 @@ export default function App() {
   var rectGeometry;
   var squareGeometry;
   var cylinderGeometry;
-  var sphereGeometry;
-  var torusGeometry;
+  // var sphereGeometry;
+  // var torusGeometry;
   var material;
 
   var gl = React.useRef(null);
@@ -248,8 +248,8 @@ export default function App() {
     rectGeometry = new BoxGeometry(3, GLOBAL.blockHeight, 1);
     squareGeometry = new BoxGeometry(GLOBAL.squareSide, GLOBAL.blockHeight, GLOBAL.squareSide);
     cylinderGeometry = new CylinderGeometry(GLOBAL.circleRadius, GLOBAL.circleRadius, GLOBAL.blockHeight, 32);
-    sphereGeometry = new SphereGeometry(GLOBAL.sphereRadius, 32, 32);
-    torusGeometry = new TorusGeometry(GLOBAL.torusRadius, GLOBAL.torusTube, 32, 32);
+    // sphereGeometry = new SphereGeometry(GLOBAL.sphereRadius, 32, 32);
+    // torusGeometry = new TorusGeometry(GLOBAL.torusRadius, GLOBAL.torusTube, 32, 32);
     material = new MeshLambertMaterial({ color: GLOBAL.blockColor });
 
     // Initialise data structures for animation
@@ -273,12 +273,12 @@ export default function App() {
           case GLOBAL.CIRCLE:
             var mesh = new Mesh(cylinderGeometry, material);
             break;
-          case GLOBAL.SPHERE:
-            var mesh = new Mesh(sphereGeometry, material);
-            break;
-          case GLOBAL.TORUS:
-            var mesh = new Mesh(torusGeometry, material);
-            break;
+          // case GLOBAL.SPHERE:
+          //   var mesh = new Mesh(sphereGeometry, material);
+          //   break;
+          // case GLOBAL.TORUS:
+          //   var mesh = new Mesh(torusGeometry, material);
+          //   break;
         }
 
         if ((i + j) % 2 == 0) {
@@ -293,9 +293,10 @@ export default function App() {
             } else {
               mesh.rotation.set(0, Math.PI / -4, 0);
             }
-          } else if (GLOBAL.shape == GLOBAL.TORUS) {
-            mesh.rotation.set(Math.PI / 2, 0, 0);
-          }
+          } 
+          // else if (GLOBAL.shape == GLOBAL.TORUS) {
+          //   mesh.rotation.set(Math.PI / 2, 0, 0);
+          // }
 
           mesh.original = {
             x: mesh.position.x,
@@ -389,6 +390,15 @@ export default function App() {
     return getRelativeLuminance(hexToRgb(GLOBAL.background)) > 150 ? 'black' : 'white'
   }
 
+  const getRandomColor = () => {
+    var letters = '0123456789ABCDEF';
+    var color = '#';
+    for (var i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  }
+
   return (
     <View 
       style={{ flex: 1 }}
@@ -459,6 +469,7 @@ export default function App() {
         onTouchStart={() => {
           console.log("Opening modal...");
           setModalOpen(true);
+          Vibration.cancel();
         }}
       >
       </View>
@@ -533,6 +544,69 @@ export default function App() {
               alignItems: 'stretch'
             }}
           >
+                        <TouchableOpacity
+              style={{
+                backgroundColor: "#03a9f4",
+                justifyContent: "center",
+                alignItems: "center",
+                paddingVertical: 10,
+                borderRadius: 10
+              }}
+              onPress={() => {
+                console.log("Randomize...")
+                GLOBAL.gravity = Math.floor(Math.random() * (200 - 1 + 1) + 1);
+                GLOBAL.wavespeed = Math.floor(Math.random() * (100 - 5 + 1) + 5);
+                GLOBAL.blockHeight = Math.floor(Math.random() * (100 - 1 + 1) + 1);
+                GLOBAL.timeScale = Math.floor(Math.random() * (100 - 15 + 1) + 15);
+                GLOBAL.maxVelocity = Math.floor(Math.random() * (50 - (-1) + 1) + (-1));
+                GLOBAL.ambientIntensity = Math.random();
+                GLOBAL.background = getRandomColor();
+                GLOBAL.blockColor = getRandomColor();
+                GLOBAL.vibration = Math.floor(Math.random() * (2 - 1 + 1) + 1);
+                GLOBAL.shape = Math.floor(Math.random() * (3 - 1 + 1) + 1);
+                setRefresh(Math.random());
+              }
+              }
+            >
+              <Text style={{
+                fontFamily: 'Montserrat_500Medium',
+                color: "white"
+              }}>
+                Randomize
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#03a9f4",
+                justifyContent: "center",
+                alignItems: "center",
+                paddingVertical: 10,
+                borderRadius: 10,
+                marginVertical: 10
+              }}
+              onPress={() => {
+                console.log("Restore defaults...")
+                GLOBAL.gravity = 60;
+                GLOBAL.wavespeed = 20;
+                GLOBAL.blockHeight = 2;
+                GLOBAL.timeScale = 20;
+                GLOBAL.maxVelocity = -1;
+                GLOBAL.ambientIntensity = 0.1;
+                GLOBAL.background = "#ffd1dc";
+                GLOBAL.blockColor = "#ffffff";
+                GLOBAL.vibration = 1;
+                GLOBAL.shape = 1;
+                setRefresh(Math.random());
+              }
+              }
+            >
+              <Text style={{
+                fontFamily: 'Montserrat_500Medium',
+                color: "white"
+              }}>
+                Restore Defaults
+              </Text>
+            </TouchableOpacity>
             <Text
               style={{
                 color: 'white',
@@ -773,8 +847,8 @@ export default function App() {
                   {label: 'Rectangle', value: 1},
                   {label: 'Square', value: 2},
                   {label: 'Circle', value: 3},
-                  {label: 'Sphere', value: 4},
-                  {label: 'Torus', value: 5},
+                  // {label: 'Sphere', value: 4},
+                  // {label: 'Torus', value: 5},
                 ]
               }
               initial={GLOBAL.shape}
@@ -787,67 +861,6 @@ export default function App() {
               boxActiveBgColor={'#fff'}
               textColor={'white'}
             />
-            <TouchableOpacity
-              style={{
-                backgroundColor: "#03a9f4",
-                justifyContent: "center",
-                alignItems: "center",
-                paddingVertical: 10,
-                borderRadius: 10
-              }}
-              onPress={() => {
-                GLOBAL.gravity = Math.floor(Math.random() * (200 - 1 + 1) + 1);
-                GLOBAL.wavespeed = Math.floor(Math.random() * (100 - 5 + 1) + 5);
-                GLOBAL.blockHeight = Math.floor(Math.random() * (100 - 1 + 1) + 1);
-                GLOBAL.timeScale = Math.floor(Math.random() * (100 - 15 + 1) + 15);
-                GLOBAL.maxVelocity = Math.floor(Math.random() * (50 - (-1) + 1) + (-1));
-                GLOBAL.ambientIntensity = Math.random();
-                GLOBAL.background = "#" + Math.floor(Math.random()*16777215).toString(16);
-                GLOBAL.blockColor = "#" + Math.floor(Math.random()*16777215).toString(16);
-                GLOBAL.vibration = Math.floor(Math.random() * (2 - 1 + 1) + 1);
-                GLOBAL.shape = Math.floor(Math.random() * (5 - 1 + 1) + 1);
-                setRefresh(Math.random());
-              }
-              }
-            >
-              <Text style={{
-                fontFamily: 'Montserrat_500Medium',
-                color: "white"
-              }}>
-                Randomize
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{
-                backgroundColor: "#03a9f4",
-                justifyContent: "center",
-                alignItems: "center",
-                paddingVertical: 10,
-                borderRadius: 10,
-                marginTop: 10
-              }}
-              onPress={() => {
-                GLOBAL.gravity = 60;
-                GLOBAL.wavespeed = 20;
-                GLOBAL.blockHeight = 2;
-                GLOBAL.timeScale = 20;
-                GLOBAL.maxVelocity = -1;
-                GLOBAL.ambientIntensity = 0.1;
-                GLOBAL.background = "#ffd1dc";
-                GLOBAL.blockColor = "#ffffff";
-                GLOBAL.vibration = 1;
-                GLOBAL.shape = 1;
-                setRefresh(Math.random());
-              }
-              }
-            >
-              <Text style={{
-                fontFamily: 'Montserrat_500Medium',
-                color: "white"
-              }}>
-                Restore Defaults
-              </Text>
-            </TouchableOpacity>
           </ScrollView>
         </View>
       </Modal>
